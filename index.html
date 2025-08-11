@@ -2,57 +2,66 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Vector RAG - Ask</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Login</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; }
-    textarea { width: 100%; height: 100px; font-size: 1rem; }
-    button { padding: 10px 20px; margin-top: 1rem; }
-    pre { background: #f0f0f0; padding: 1rem; white-space: pre-wrap; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #g_id_onload {
+      margin-bottom: 20px;
+    }
+    #message {
+      margin-top: 20px;
+      color: red;
+    }
   </style>
 </head>
 <body>
-  <h1>Ask your question</h1>
-  <textarea id="question" placeholder="Type your question here..."></textarea><br />
-  <button id="askBtn">Ask</button>
-
-  <pre id="answer"></pre>
+  <h1>Please Log In</h1>
+  <div id="g_id_onload"
+       data-client_id="YOUR_GOOGLE_CLIENT_ID"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
+  <div id="message"></div>
 
   <script>
-    async function askQuestion() {
-      const question = document.getElementById("question").value.trim();
-      if (!question) return alert("Please type a question");
-      document.getElementById("answer").textContent = "Loading...";
+    const workerLoginUrl = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/login";
+
+    async function handleCredentialResponse(response) {
+      const idToken = response.credential;
+      if (!idToken) {
+        document.getElementById("message").textContent = "Google login failed.";
+        return;
+      }
       try {
-        const res = await fetch("https://YOUR_WORKER_SUBDOMAIN.workers.dev/ask", {
+        const res = await fetch(workerLoginUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include", // send cookies for auth
-          body: JSON.stringify({ question }),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ idToken }),
+          credentials: "include", // Important for cookies
         });
         const data = await res.json();
         if (res.ok) {
-          document.getElementById("answer").textContent = data.answer || "No answer found.";
-        } else if (res.status === 401) {
-          alert("Unauthorized. Please login.");
-          window.location.href = "login.html";
+          // Login succeeded — redirect to index.html
+          window.location.href = "index.html";
         } else {
-          document.getElementById("answer").textContent = data.error || "Error getting answer";
+          document.getElementById("message").textContent = data.error || "Login failed.";
         }
       } catch (e) {
-        document.getElementById("answer").textContent = e.message;
+        document.getElementById("message").textContent = "Login request error.";
+        console.error(e);
       }
     }
-
-    document.getElementById("askBtn").addEventListener("click", askQuestion);
-    document.getElementById("question").addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        askQuestion();
-      }
-    });
-
-    // Redirect to login if not authenticated
-    // Optional: on load, check with /ask or another endpoint if auth cookie exists (could implement a /me endpoint)
   </script>
 </body>
 </html>
