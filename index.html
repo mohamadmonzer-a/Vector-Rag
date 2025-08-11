@@ -4,51 +4,12 @@
   <meta charset="UTF-8" />
   <title>Vector Rag Chat</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
-    }
-    h1 {
-      text-align: center;
-    }
-    #messages {
-      border: 1px solid #ccc;
-      background: #fff;
-      padding: 15px;
-      height: 300px;
-      overflow-y: auto;
-      margin-bottom: 15px;
-      white-space: pre-wrap;
-    }
-    #login-section, #chat-section {
-      margin-top: 20px;
-      text-align: center;
-    }
-    #question {
-      width: 80%;
-      padding: 10px;
-      font-size: 1rem;
-      border: 1px solid #aaa;
-      border-radius: 4px;
-    }
-    #send {
-      padding: 10px 16px;
-      font-size: 1rem;
-      margin-left: 8px;
-      cursor: pointer;
-    }
-    #logout {
-      margin-bottom: 10px;
-      cursor: pointer;
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 4px;
-    }
+    body { font-family: Arial; max-width: 600px; margin: 40px auto; background: #f9f9f9; }
+    #messages { border: 1px solid #ccc; background: #fff; padding: 15px; height: 300px; overflow-y: auto; margin-bottom: 15px; }
+    #login-section, #chat-section { margin-top: 20px; text-align: center; }
+    #question { width: 80%; padding: 10px; }
+    #send { padding: 10px 16px; margin-left: 8px; }
+    #logout { background: #e74c3c; color: white; border: none; padding: 8px 12px; margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -69,33 +30,14 @@
   <script>
     const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
-    async function checkAuth() {
-      try {
-        console.log("🔍 Checking authentication...");
-
-        const res = await fetch(workerUrl + "/ask", {
-          method: "POST",
-          credentials: "include", // Send cookies
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question: "__ping__" }),
-        });
-
-        console.log("✅ Auth check status:", res.status);
-
-        if (res.status === 401) {
-          // Not logged in
-          document.getElementById("login-section").style.display = "block";
-          document.getElementById("chat-section").style.display = "none";
-        } else if (res.ok) {
-          // Logged in
-          document.getElementById("login-section").style.display = "none";
-          document.getElementById("chat-section").style.display = "block";
-        } else {
-          alert("⚠️ Error checking login status: " + res.status);
-        }
-      } catch (e) {
-        alert("❌ Network error: " + e.message);
-        console.error(e);
+    function checkAuth() {
+      const email = localStorage.getItem("authEmail");
+      if (email && email.length > 0) {
+        document.getElementById("login-section").style.display = "none";
+        document.getElementById("chat-section").style.display = "block";
+      } else {
+        document.getElementById("login-section").style.display = "block";
+        document.getElementById("chat-section").style.display = "none";
       }
     }
 
@@ -104,28 +46,31 @@
       const question = questionInput.value.trim();
       if (!question) return;
 
+      const email = localStorage.getItem("authEmail");
+      if (!email) {
+        alert("Please log in first.");
+        window.location.href = "login.html";
+        return;
+      }
+
       try {
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + email
+          },
           body: JSON.stringify({ question }),
         });
 
         if (res.status === 401) {
-          alert("❌ Unauthorized. Please log in.");
+          alert("Unauthorized. Please log in again.");
+          localStorage.removeItem("authEmail");
           window.location.href = "login.html";
           return;
         }
 
-        if (!res.ok) {
-          const err = await res.json();
-          alert("⚠️ Error: " + (err.error || "Unknown error"));
-          return;
-        }
-
         const data = await res.json();
-
         const messages = document.getElementById("messages");
         messages.innerHTML += `<p><strong>You:</strong> ${question}</p>`;
         messages.innerHTML += `<p><strong>Bot:</strong> ${data.answer || JSON.stringify(data)}</p>`;
@@ -134,30 +79,21 @@
         questionInput.value = "";
         questionInput.focus();
       } catch (e) {
-        alert("❌ Network error: " + e.message);
-        console.error(e);
+        alert("Network error: " + e.message);
       }
     }
 
-    async function logout() {
-      try {
-        await fetch(workerUrl + "/logout", {
-          method: "POST",
-          credentials: "include",
-        });
-      } catch (e) {
-        console.warn("Logout error:", e.message);
-      }
+    function logout() {
+      localStorage.removeItem("authEmail");
       window.location.reload();
     }
 
     document.getElementById("send").addEventListener("click", sendQuestion);
-    document.getElementById("question").addEventListener("keydown", (e) => {
+    document.getElementById("question").addEventListener("keydown", e => {
       if (e.key === "Enter") sendQuestion();
     });
     document.getElementById("logout").addEventListener("click", logout);
 
-    // 👇 On page load
     window.addEventListener("load", checkAuth);
   </script>
 </body>
