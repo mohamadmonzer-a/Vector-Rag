@@ -4,14 +4,55 @@
   <meta charset="UTF-8" />
   <title>Vector Rag Chat</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    #login-section, #chat-section { margin-top: 20px; }
-    button { margin-left: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+    }
+    #messages {
+      border: 1px solid #ccc;
+      background: #fff;
+      padding: 15px;
+      height: 300px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+    }
+    #login-section, #chat-section {
+      margin-top: 20px;
+      text-align: center;
+    }
+    #question {
+      width: 80%;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+    }
+    #send {
+      padding: 10px 16px;
+      font-size: 1rem;
+      margin-left: 8px;
+      cursor: pointer;
+    }
+    #logout {
+      margin-bottom: 10px;
+      cursor: pointer;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
-  <h1>Vector Rag</h1>
+  <h1>Vector Rag Chat</h1>
 
   <div id="login-section" style="display:none;">
     <p>You are not logged in.</p>
@@ -21,7 +62,7 @@
   <div id="chat-section" style="display:none;">
     <button id="logout">Logout</button>
     <div id="messages"></div>
-    <input type="text" id="question" placeholder="Ask something..." />
+    <input type="text" id="question" placeholder="Type your question here..." autocomplete="off" />
     <button id="send">Send</button>
   </div>
 
@@ -32,12 +73,11 @@
       try {
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include", // send cookies
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: "__ping__" }),
         });
         if (res.status === 401) {
-          // Not logged in
           document.getElementById("login-section").style.display = "block";
           document.getElementById("chat-section").style.display = "none";
         } else if (res.ok) {
@@ -59,7 +99,7 @@
       try {
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include", // send cookies
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question }),
         });
@@ -79,8 +119,8 @@
         const data = await res.json();
 
         const messages = document.getElementById("messages");
-        messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
-        messages.innerHTML += `<p><b>Bot:</b> ${data.answer || JSON.stringify(data)}</p>`;
+        messages.innerHTML += `<p><strong>You:</strong> ${question}</p>`;
+        messages.innerHTML += `<p><strong>Bot:</strong> ${data.answer || JSON.stringify(data)}</p>`;
         messages.scrollTop = messages.scrollHeight;
 
         questionInput.value = "";
@@ -90,26 +130,23 @@
       }
     }
 
-    // Logout clears cookie via worker and reloads page
     async function logout() {
       try {
         await fetch(workerUrl + "/logout", {
           method: "POST",
           credentials: "include",
         });
-      } catch (e) {
-        // ignore errors
-      }
+      } catch (e) {}
       window.location.reload();
     }
 
     document.getElementById("send").addEventListener("click", sendQuestion);
-    document.getElementById("question").addEventListener("keydown", e => {
+    document.getElementById("question").addEventListener("keydown", (e) => {
       if (e.key === "Enter") sendQuestion();
     });
     document.getElementById("logout").addEventListener("click", logout);
 
-    // Run auth check on load
+    // On page load check auth
     checkAuth();
   </script>
 </body>
