@@ -2,72 +2,147 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Ask Something</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ask & Answer</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; }
-    #response { margin-top: 1rem; white-space: pre-wrap; background: #f0f0f0; padding: 1rem; border-radius: 5px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 3rem auto;
+      padding: 1rem;
+      background: #f9f9f9;
+      border-radius: 8px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      min-height: 100px;
+      font-size: 1rem;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1.5px solid #ccc;
+      resize: vertical;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.7rem 2rem;
+      font-size: 1rem;
+      border: none;
+      border-radius: 6px;
+      background-color: #2563eb;
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(37, 99, 235, 0.3);
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background-color: #1e40af;
+    }
+    #answer {
+      margin-top: 1.5rem;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 1rem;
+      border-radius: 8px;
+      min-height: 80px;
+      white-space: pre-wrap;
+      text-align: left;
+    }
+    #logoutBtn {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #b91c1c;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      font-weight: bold;
+      box-shadow: none;
+    }
   </style>
 </head>
 <body>
-  <h1>Ask Something</h1>
   <button id="logoutBtn">Logout</button>
-  <form id="askForm">
-    <textarea id="question" rows="4" cols="50" placeholder="Type your question here..." required></textarea><br/>
-    <button type="submit">Ask</button>
-  </form>
-  <pre id="response"></pre>
+  <h1>Ask your question</h1>
+  <textarea id="question" placeholder="Type your question here..."></textarea>
+  <br />
+  <button id="askBtn">Ask</button>
+  <div id="answer"></div>
+  <div id="error" style="color:red; margin-top:1rem;"></div>
 
   <script>
-    // Check if auth_email cookie exists; if not, redirect to login
-    function getCookie(name) {
-      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
-      return match ? decodeURIComponent(match[2]) : null;
+    const workerUrl = "https://your-worker-domain";
+
+    async function checkAuth() {
+      // We can try calling /ask with empty question to test auth or create /me endpoint in backend.
+      // Here simple approach: try calling /ask with empty, expect 401 or 400.
+      const res = await fetch(workerUrl + "/ask", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: "ping" }),
+      });
+      if (res.status === 401) {
+        window.location.href = "login.html";
+        return false;
+      }
+      return true;
     }
 
-    if (!getCookie('auth_email')) {
-      window.location.href = 'login.html';
+    async function logout() {
+      await fetch(workerUrl + "/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "login.html";
     }
 
-    const askForm = document.getElementById('askForm');
-    const responsePre = document.getElementById('response');
-    const logoutBtn = document.getElementById('logoutBtn');
+    async function askQuestion() {
+      const questionInput = document.getElementById("question");
+      const answerDiv = document.getElementById("answer");
+      const errorDiv = document.getElementById("error");
+      errorDiv.textContent = "";
+      answerDiv.textContent = "Loading...";
 
-    askForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      responsePre.textContent = 'Loading...';
-      const question = document.getElementById('question').value.trim();
+      const question = questionInput.value.trim();
       if (!question) {
-        responsePre.textContent = 'Please enter a question.';
+        errorDiv.textContent = "Please enter a question.";
+        answerDiv.textContent = "";
         return;
       }
 
       try {
-        const res = await fetch('https://vector-rag.monzer-mohamad-a.workers.dev/ask', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+        const res = await fetch(workerUrl + "/ask", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question }),
         });
 
-        const data = await res.json();
-        if (res.ok) {
-          responsePre.textContent = JSON.stringify(data, null, 2);
-        } else {
-          responsePre.textContent = data.error || 'Error';
+        if (res.status === 401) {
+          window.location.href = "login.html";
+          return;
         }
-      } catch (err) {
-        responsePre.textContent = 'Network error';
-      }
-    });
 
-    logoutBtn.addEventListener('click', async () => {
-      await fetch('https://vector-rag.monzer-mohamad-a.workers.dev/logout', {
-        method: 'POST',
-        credentials: 'include',
-      });
-      document.cookie = 'auth_email=; Max-Age=0; path=/;'; // Clear cookie client-side
-      window.location.href = 'login.html';
-    });
+        const data = await res.json();
+        if (!res.ok) {
+          errorDiv.textContent = data.error || "Error getting answer";
+          answerDiv.textContent = "";
+          return;
+        }
+
+        answerDiv.textContent = data.answer || JSON.stringify(data);
+      } catch (err) {
+        errorDiv.textContent = err.message;
+        answerDiv.textContent = "";
+      }
+    }
+
+    document.getElementById("askBtn").onclick = askQuestion;
+    document.getElementById("logoutBtn").onclick = logout;
+
+    // Check auth on page load
+    checkAuth();
   </script>
 </body>
 </html>
