@@ -1,4 +1,25 @@
 <!DOCTYPE html>
+<html>
+<head>
+  <title>Test Google Signin</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div id="g_id_onload"
+       data-client_id="723269872009-n5s7di6on92goolcvriuo4lp6db0l5kl.apps.googleusercontent.com"
+       data-callback="handleCredentialResponse"
+       data-auto_prompt="false">
+  </div>
+  <div class="g_id_signin" data-type="standard"></div>
+
+  <script>
+    function handleCredentialResponse(response) {
+      console.log("ID token:", response.credential);
+    }
+  </script>
+</body>
+</html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -80,3 +101,4 @@
   </script>
 </body>
 </html>
+ -->
