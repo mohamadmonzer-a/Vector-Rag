@@ -19,6 +19,7 @@
   </div>
 
   <div id="chat-section" style="display:none;">
+    <button id="logout">Logout</button>
     <div id="messages"></div>
     <input type="text" id="question" placeholder="Ask something..." />
     <button id="send">Send</button>
@@ -31,18 +32,19 @@
       try {
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include",
+          credentials: "include", // send cookies
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: "__ping__" }),
         });
         if (res.status === 401) {
+          // Not logged in
           document.getElementById("login-section").style.display = "block";
           document.getElementById("chat-section").style.display = "none";
         } else if (res.ok) {
           document.getElementById("login-section").style.display = "none";
           document.getElementById("chat-section").style.display = "block";
         } else {
-          alert("Unexpected error checking login: " + res.status);
+          alert("Error checking login: " + res.status);
         }
       } catch (e) {
         alert("Network error: " + e.message);
@@ -57,7 +59,7 @@
       try {
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include",
+          credentials: "include", // send cookies
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question }),
         });
@@ -88,11 +90,26 @@
       }
     }
 
+    // Logout clears cookie via worker and reloads page
+    async function logout() {
+      try {
+        await fetch(workerUrl + "/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch (e) {
+        // ignore errors
+      }
+      window.location.reload();
+    }
+
     document.getElementById("send").addEventListener("click", sendQuestion);
     document.getElementById("question").addEventListener("keydown", e => {
       if (e.key === "Enter") sendQuestion();
     });
+    document.getElementById("logout").addEventListener("click", logout);
 
+    // Run auth check on load
     checkAuth();
   </script>
 </body>
