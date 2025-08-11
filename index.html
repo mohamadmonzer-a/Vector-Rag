@@ -27,7 +27,6 @@
   <script>
     const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
-    // Check if logged in by sending a ping question
     async function checkAuth() {
       try {
         const res = await fetch(workerUrl + "/ask", {
@@ -37,15 +36,12 @@
           body: JSON.stringify({ question: "__ping__" }),
         });
         if (res.status === 401) {
-          // Not logged in
           document.getElementById("login-section").style.display = "block";
           document.getElementById("chat-section").style.display = "none";
         } else if (res.ok) {
-          // Logged in
           document.getElementById("login-section").style.display = "none";
           document.getElementById("chat-section").style.display = "block";
         } else {
-          // Other error
           alert("Unexpected error checking login: " + res.status);
         }
       } catch (e) {
@@ -53,7 +49,6 @@
       }
     }
 
-    // Send question to backend and display response
     async function sendQuestion() {
       const questionInput = document.getElementById("question");
       const question = questionInput.value.trim();
@@ -93,17 +88,11 @@
       }
     }
 
-    // Send button handler
     document.getElementById("send").addEventListener("click", sendQuestion);
-
-    // Allow pressing Enter key in input to send question
     document.getElementById("question").addEventListener("keydown", e => {
-      if (e.key === "Enter") {
-        sendQuestion();
-      }
+      if (e.key === "Enter") sendQuestion();
     });
 
-    // Initial login check
     checkAuth();
   </script>
 </body>
