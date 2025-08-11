@@ -1,57 +1,55 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login with Google</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       font-family: sans-serif;
       display: flex;
       flex-direction: column;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       height: 100vh;
     }
   </style>
 </head>
 <body>
-  <h1>Sign in</h1>
+  <h1>Sign in with Google</h1>
 
   <!-- Google Identity Services -->
   <div id="g_id_onload"
        data-client_id="723269872009-n5s7di6on92goolcvriuo4lp6db0l5kl.apps.googleusercontent.com"
-       data-context="signin"
-       data-ux_mode="popup"
        data-callback="handleCredentialResponse"
-       data-auto_select="false">
+       data-auto_select="false"
+       data-ux_mode="popup">
   </div>
 
-  <!-- The actual button -->
   <div class="g_id_signin" data-type="standard"></div>
 
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
     async function handleCredentialResponse(response) {
       const idToken = response.credential;
-
       try {
-        // Send ID token to your backend for verification
-        const res = await fetch("https://vector-rag.monzer-mohamad-a.workers.dev/auth", {
+        const res = await fetch("https://vector-rag.monzer-mohamad-a.workers.dev/login", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id_token: idToken })
+          credentials: "include",
+          body: JSON.stringify({ idToken }),
         });
 
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          const error = await res.json();
+          alert("Login failed: " + (error.error || "Unknown error"));
+          return;
+        }
 
-        const data = await res.json();
-        alert("Login successful! Welcome " + data.email);
-
-        // Redirect to your dashboard
+        alert("Login successful!");
         window.location.href = "index.html";
-      } catch (err) {
-        alert("Login failed: " + err.message);
+      } catch (e) {
+        alert("Login error: " + e.message);
       }
     }
   </script>
