@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Vector Rag</title>
@@ -7,16 +7,19 @@
     body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
     #chat { margin-top: 20px; }
     #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
+    button { margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>Vector Rag</h1>
+
   <div id="login-section" style="display:none;">
-    <p>Please log in with Google:</p>
-    <a id="login-link" href="#">Login</a>
+    <p>You are not logged in.</p>
+    <a href="login.html">Login with Google</a>
   </div>
 
   <div id="chat-section" style="display:none;">
+    <button id="logout-btn">Logout</button>
     <div id="messages"></div>
     <input type="text" id="question" placeholder="Ask something..." />
     <button id="send">Send</button>
@@ -25,36 +28,38 @@
   <script>
     const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
-    // Check login status
     async function checkAuth() {
       const res = await fetch(workerUrl + "/ask", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: "__ping__" })
+        body: JSON.stringify({ question: "__ping__" }),
       });
 
       if (res.status === 401) {
         document.getElementById("login-section").style.display = "block";
+        document.getElementById("chat-section").style.display = "none";
       } else {
+        document.getElementById("login-section").style.display = "none";
         document.getElementById("chat-section").style.display = "block";
       }
     }
 
-    // Send question
     document.getElementById("send").addEventListener("click", async () => {
-      const question = document.getElementById("question").value;
-      if (!question.trim()) return;
+      const questionInput = document.getElementById("question");
+      const question = questionInput.value.trim();
+      if (!question) return;
 
       const res = await fetch(workerUrl + "/ask", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question }),
       });
 
       if (res.status === 401) {
-        location.href = "login.html";
+        alert("Session expired. Please login again.");
+        window.location.href = "login.html";
         return;
       }
 
@@ -62,17 +67,17 @@
       const messages = document.getElementById("messages");
       messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
       messages.innerHTML += `<p><b>Bot:</b> ${data.answer}</p>`;
-      document.getElementById("question").value = "";
+      questionInput.value = "";
+      messages.scrollTop = messages.scrollHeight;
     });
 
-    // Login link
-    document.getElementById("login-link").href =
-      "https://accounts.google.com/o/oauth2/v2/auth" +
-      "?client_id=YOUR_CLIENT_ID" +
-      "&redirect_uri=" + encodeURIComponent(workerUrl + "/auth/callback") +
-      "&response_type=code" +
-      "&scope=openid%20email" +
-      "&access_type=online";
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await fetch(workerUrl + "/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      window.location.href = "login.html";
+    });
 
     checkAuth();
   </script>
