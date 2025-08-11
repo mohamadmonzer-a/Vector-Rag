@@ -1,42 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ask a Question</title>
+  <meta charset="UTF-8" />
+  <title>Ask Something</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 2rem auto; }
+    #response { margin-top: 1rem; white-space: pre-wrap; background: #f0f0f0; padding: 1rem; border-radius: 5px; }
+  </style>
 </head>
 <body>
-  <h1>Ask the AI</h1>
-  <textarea id="question" placeholder="Type your question..."></textarea><br>
-  <button id="askBtn">Ask</button>
-  <div id="answer"></div>
+  <h1>Ask Something</h1>
+  <button id="logoutBtn">Logout</button>
+  <form id="askForm">
+    <textarea id="question" rows="4" cols="50" placeholder="Type your question here..." required></textarea><br/>
+    <button type="submit">Ask</button>
+  </form>
+  <pre id="response"></pre>
 
   <script>
-    const API_URL = "https://your-worker-subdomain.workers.dev";
-
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      window.location.href = "login.html";
+    // Check if auth_email cookie exists; if not, redirect to login
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
     }
 
-    document.getElementById("askBtn").addEventListener("click", async () => {
-      const question = document.getElementById("question").value.trim();
-      if (!question) return alert("Please enter a question");
+    if (!getCookie('auth_email')) {
+      window.location.href = 'login.html';
+    }
 
-      const res = await fetch(API_URL + "/ask", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({ question })
-      });
+    const askForm = document.getElementById('askForm');
+    const responsePre = document.getElementById('response');
+    const logoutBtn = document.getElementById('logoutBtn');
 
-      const data = await res.json();
-      if (res.ok) {
-        document.getElementById("answer").innerText = data.answer;
-      } else {
-        alert("Error: " + (data.error || "Unknown"));
+    askForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      responsePre.textContent = 'Loading...';
+      const question = document.getElementById('question').value.trim();
+      if (!question) {
+        responsePre.textContent = 'Please enter a question.';
+        return;
       }
+
+      try {
+        const res = await fetch('https://vector-rag.monzer-mohamad-a.workers.dev/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ question }),
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+          responsePre.textContent = JSON.stringify(data, null, 2);
+        } else {
+          responsePre.textContent = data.error || 'Error';
+        }
+      } catch (err) {
+        responsePre.textContent = 'Network error';
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('https://vector-rag.monzer-mohamad-a.workers.dev/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      document.cookie = 'auth_email=; Max-Age=0; path=/;'; // Clear cookie client-side
+      window.location.href = 'login.html';
     });
   </script>
 </body>
