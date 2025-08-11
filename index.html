@@ -1,100 +1,43 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Vector Rag Chat</title>
-  <style>
-    body { font-family: Arial; max-width: 600px; margin: 40px auto; background: #f9f9f9; }
-    #messages { border: 1px solid #ccc; background: #fff; padding: 15px; height: 300px; overflow-y: auto; margin-bottom: 15px; }
-    #login-section, #chat-section { margin-top: 20px; text-align: center; }
-    #question { width: 80%; padding: 10px; }
-    #send { padding: 10px 16px; margin-left: 8px; }
-    #logout { background: #e74c3c; color: white; border: none; padding: 8px 12px; margin-bottom: 10px; }
-  </style>
+  <meta charset="UTF-8">
+  <title>Ask a Question</title>
 </head>
 <body>
-  <h1>Vector Rag Chat</h1>
-
-  <div id="login-section" style="display:none;">
-    <p>You are not logged in.</p>
-    <a href="login.html">Login with Google</a>
-  </div>
-
-  <div id="chat-section" style="display:none;">
-    <button id="logout">Logout</button>
-    <div id="messages"></div>
-    <input type="text" id="question" placeholder="Type your question here..." autocomplete="off" />
-    <button id="send">Send</button>
-  </div>
+  <h1>Ask the AI</h1>
+  <textarea id="question" placeholder="Type your question..."></textarea><br>
+  <button id="askBtn">Ask</button>
+  <div id="answer"></div>
 
   <script>
-    const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
+    const API_URL = "https://your-worker-subdomain.workers.dev";
 
-    function checkAuth() {
-      const email = localStorage.getItem("authEmail");
-      if (email && email.length > 0) {
-        document.getElementById("login-section").style.display = "none";
-        document.getElementById("chat-section").style.display = "block";
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      window.location.href = "login.html";
+    }
+
+    document.getElementById("askBtn").addEventListener("click", async () => {
+      const question = document.getElementById("question").value.trim();
+      if (!question) return alert("Please enter a question");
+
+      const res = await fetch(API_URL + "/ask", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ question })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        document.getElementById("answer").innerText = data.answer;
       } else {
-        document.getElementById("login-section").style.display = "block";
-        document.getElementById("chat-section").style.display = "none";
+        alert("Error: " + (data.error || "Unknown"));
       }
-    }
-
-    async function sendQuestion() {
-      const questionInput = document.getElementById("question");
-      const question = questionInput.value.trim();
-      if (!question) return;
-
-      const email = localStorage.getItem("authEmail");
-      if (!email) {
-        alert("Please log in first.");
-        window.location.href = "login.html";
-        return;
-      }
-
-      try {
-        const res = await fetch(workerUrl + "/ask", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + email
-          },
-          body: JSON.stringify({ question }),
-        });
-
-        if (res.status === 401) {
-          alert("Unauthorized. Please log in again.");
-          localStorage.removeItem("authEmail");
-          window.location.href = "login.html";
-          return;
-        }
-
-        const data = await res.json();
-        const messages = document.getElementById("messages");
-        messages.innerHTML += `<p><strong>You:</strong> ${question}</p>`;
-        messages.innerHTML += `<p><strong>Bot:</strong> ${data.answer || JSON.stringify(data)}</p>`;
-        messages.scrollTop = messages.scrollHeight;
-
-        questionInput.value = "";
-        questionInput.focus();
-      } catch (e) {
-        alert("Network error: " + e.message);
-      }
-    }
-
-    function logout() {
-      localStorage.removeItem("authEmail");
-      window.location.reload();
-    }
-
-    document.getElementById("send").addEventListener("click", sendQuestion);
-    document.getElementById("question").addEventListener("keydown", e => {
-      if (e.key === "Enter") sendQuestion();
     });
-    document.getElementById("logout").addEventListener("click", logout);
-
-    window.addEventListener("load", checkAuth);
   </script>
 </body>
 </html>
