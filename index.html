@@ -3,115 +3,117 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ask your question</title>
+  <title>Ask Vector-RAG</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 40px;
       max-width: 600px;
-      margin-left: auto;
-      margin-right: auto;
     }
     textarea {
       width: 100%;
-      height: 100px;
-      font-size: 16px;
+      height: 120px;
+      font-size: 1.1em;
       padding: 10px;
+      box-sizing: border-box;
     }
     button {
       margin-top: 10px;
       padding: 10px 20px;
-      font-size: 16px;
+      font-size: 1.1em;
+      cursor: pointer;
     }
     #answer {
-      margin-top: 30px;
+      margin-top: 20px;
       white-space: pre-wrap;
-      background-color: #f5f5f5;
+      background: #f9f9f9;
+      border: 1px solid #ccc;
       padding: 15px;
-      border-radius: 8px;
-      min-height: 80px;
+      border-radius: 5px;
+      min-height: 100px;
     }
-    #logout-btn {
-      float: right;
-      margin-top: -50px;
+    #logout {
+      margin-top: 30px;
       cursor: pointer;
-      color: blue;
+      color: #d33;
       text-decoration: underline;
       background: none;
       border: none;
-      font-size: 14px;
+      font-size: 1em;
     }
   </style>
 </head>
 <body>
-  <button id="logout-btn">Logout</button>
   <h1>Ask your question</h1>
-  <textarea id="question" placeholder="Write your question here..."></textarea><br />
-  <button id="ask-btn">Ask</button>
-
+  <textarea id="question" placeholder="Type your question here..."></textarea>
+  <button id="askBtn">Ask</button>
   <div id="answer"></div>
+  <button id="logout">Logout</button>
 
   <script>
-    const workerAskUrl = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/ask";
-    const workerLogoutUrl = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/logout";
+    const workerAskUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/ask";
+    const workerLogoutUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/logout";
 
-    // Check if logged in by calling ask endpoint with dummy question or auth check
-    async function checkAuth() {
-      const res = await fetch(workerAskUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ question: "ping" }),
-        credentials: "include",
-      });
-      if (res.status === 401) {
-        // Not authorized, redirect to login
-        window.location.href = "login.html";
-      }
-    }
-
-    document.getElementById("ask-btn").addEventListener("click", async () => {
+    // Send question to worker
+    async function askQuestion() {
       const question = document.getElementById("question").value.trim();
       if (!question) {
         alert("Please enter a question.");
         return;
       }
-      document.getElementById("answer").textContent = "Loading...";
+      document.getElementById("answer").textContent = "Thinking...";
+
       try {
         const res = await fetch(workerAskUrl, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ question }),
-          credentials: "include",
+          credentials: "include"  // send cookies for auth
         });
-        if (res.status === 401) {
-          window.location.href = "login.html";
-          return;
-        }
+
         const data = await res.json();
-        if (data.error) {
-          document.getElementById("answer").textContent = "Error: " + data.error;
-        } else {
+        if (res.ok) {
           document.getElementById("answer").textContent = data.answer || "No answer found.";
+        } else {
+          document.getElementById("answer").textContent = data.error || "Error getting answer.";
+          if (res.status === 401) {
+            // Unauthorized, redirect to login
+            window.location.href = "login.html";
+          }
         }
       } catch (e) {
-        document.getElementById("answer").textContent = "Request failed.";
+        document.getElementById("answer").textContent = "Request error.";
+        console.error(e);
+      }
+    }
+
+    document.getElementById("askBtn").addEventListener("click", askQuestion);
+    document.getElementById("question").addEventListener("keypress", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        askQuestion();
       }
     });
 
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-      await fetch(workerLogoutUrl, {
-        method: "POST",
-        credentials: "include",
-      });
-      window.location.href = "login.html";
+    // Logout logic
+    document.getElementById("logout").addEventListener("click", async () => {
+      try {
+        const res = await fetch(workerLogoutUrl, {
+          method: "POST",
+          credentials: "include",
+        });
+        if (res.ok) {
+          window.location.href = "login.html";
+        } else {
+          alert("Logout failed.");
+        }
+      } catch (e) {
+        alert("Logout error.");
+        console.error(e);
+      }
     });
-
-    // Run auth check on load
-    checkAuth();
   </script>
 </body>
 </html>
