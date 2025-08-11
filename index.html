@@ -71,23 +71,31 @@
 
     async function checkAuth() {
       try {
+        console.log("🔍 Checking authentication...");
+
         const res = await fetch(workerUrl + "/ask", {
           method: "POST",
-          credentials: "include",
+          credentials: "include", // Send cookies
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: "__ping__" }),
         });
+
+        console.log("✅ Auth check status:", res.status);
+
         if (res.status === 401) {
+          // Not logged in
           document.getElementById("login-section").style.display = "block";
           document.getElementById("chat-section").style.display = "none";
         } else if (res.ok) {
+          // Logged in
           document.getElementById("login-section").style.display = "none";
           document.getElementById("chat-section").style.display = "block";
         } else {
-          alert("Error checking login: " + res.status);
+          alert("⚠️ Error checking login status: " + res.status);
         }
       } catch (e) {
-        alert("Network error: " + e.message);
+        alert("❌ Network error: " + e.message);
+        console.error(e);
       }
     }
 
@@ -105,14 +113,14 @@
         });
 
         if (res.status === 401) {
-          alert("Unauthorized. Please login.");
+          alert("❌ Unauthorized. Please log in.");
           window.location.href = "login.html";
           return;
         }
 
         if (!res.ok) {
           const err = await res.json();
-          alert("Error: " + (err.error || "Unknown error"));
+          alert("⚠️ Error: " + (err.error || "Unknown error"));
           return;
         }
 
@@ -126,7 +134,8 @@
         questionInput.value = "";
         questionInput.focus();
       } catch (e) {
-        alert("Network error: " + e.message);
+        alert("❌ Network error: " + e.message);
+        console.error(e);
       }
     }
 
@@ -136,7 +145,9 @@
           method: "POST",
           credentials: "include",
         });
-      } catch (e) {}
+      } catch (e) {
+        console.warn("Logout error:", e.message);
+      }
       window.location.reload();
     }
 
@@ -146,8 +157,8 @@
     });
     document.getElementById("logout").addEventListener("click", logout);
 
-    // On page load check auth
-    checkAuth();
+    // 👇 On page load
+    window.addEventListener("load", checkAuth);
   </script>
 </body>
 </html>
