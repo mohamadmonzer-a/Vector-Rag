@@ -31,7 +31,6 @@
       const data = await res.json();
 
       if (res.ok) {
-        // Login success, redirect to index.html
         window.location.href = 'index.html';
       } else {
         document.getElementById('message').textContent = data.error || 'Login failed';
