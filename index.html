@@ -1,124 +1,80 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Ask Vector-RAG</title>
+  <title>Vector Rag</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px auto;
-      max-width: 600px;
-    }
-    textarea {
-      width: 100%;
-      height: 120px;
-      font-size: 1.1em;
-      padding: 10px;
-      box-sizing: border-box;
-      resize: vertical;
-    }
-    button {
-      margin-top: 10px;
-      padding: 10px 20px;
-      font-size: 1.1em;
-      cursor: pointer;
-    }
-    #answer {
-      margin-top: 20px;
-      white-space: pre-wrap;
-      background: #f9f9f9;
-      border: 1px solid #ccc;
-      padding: 15px;
-      border-radius: 5px;
-      min-height: 100px;
-      user-select: text;
-    }
-    #logout {
-      margin-top: 30px;
-      cursor: pointer;
-      color: #d33;
-      text-decoration: underline;
-      background: none;
-      border: none;
-      font-size: 1em;
-    }
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
+    #chat { margin-top: 20px; }
+    #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
   </style>
 </head>
 <body>
-  <h1>Ask your question</h1>
-  <textarea id="question" placeholder="Type your question here..."></textarea>
-  <button id="askBtn">Ask</button>
-  <div id="answer"></div>
-  <button id="logout">Logout</button>
+  <h1>Vector Rag</h1>
+  <div id="login-section" style="display:none;">
+    <p>Please log in with Google:</p>
+    <a id="login-link" href="#">Login</a>
+  </div>
+
+  <div id="chat-section" style="display:none;">
+    <div id="messages"></div>
+    <input type="text" id="question" placeholder="Ask something..." />
+    <button id="send">Send</button>
+  </div>
 
   <script>
-    const workerAskUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/ask";
-    const workerLogoutUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/logout";
+    const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
-    // Send question to the worker with cookie credentials for authentication
-    async function askQuestion() {
-      const question = document.getElementById("question").value.trim();
-      if (!question) {
-        alert("Please enter a question.");
-        return;
-      }
+    // Check login status
+    async function checkAuth() {
+      const res = await fetch(workerUrl + "/ask", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: "__ping__" })
+      });
 
-      document.getElementById("answer").textContent = "Thinking...";
-
-      try {
-        const res = await fetch(workerAskUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          credentials: "include",  // important to send cookies
-          body: JSON.stringify({ question }),
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-          document.getElementById("answer").textContent = data.answer || "No answer found.";
-        } else {
-          document.getElementById("answer").textContent = data.error || "Error getting answer.";
-          if (res.status === 401) {
-            // Unauthorized - redirect to login page
-            window.location.href = "login.html";
-          }
-        }
-      } catch (e) {
-        document.getElementById("answer").textContent = "Request error.";
-        console.error(e);
+      if (res.status === 401) {
+        document.getElementById("login-section").style.display = "block";
+      } else {
+        document.getElementById("chat-section").style.display = "block";
       }
     }
 
-    // Bind ask button click and enter key (without shift) to send question
-    document.getElementById("askBtn").addEventListener("click", askQuestion);
-    document.getElementById("question").addEventListener("keypress", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        askQuestion();
+    // Send question
+    document.getElementById("send").addEventListener("click", async () => {
+      const question = document.getElementById("question").value;
+      if (!question.trim()) return;
+
+      const res = await fetch(workerUrl + "/ask", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+
+      if (res.status === 401) {
+        location.href = "login.html";
+        return;
       }
+
+      const data = await res.json();
+      const messages = document.getElementById("messages");
+      messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
+      messages.innerHTML += `<p><b>Bot:</b> ${data.answer}</p>`;
+      document.getElementById("question").value = "";
     });
 
-    // Logout clears the cookie via worker, then redirects to login page
-    document.getElementById("logout").addEventListener("click", async () => {
-      try {
-        const res = await fetch(workerLogoutUrl, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (res.ok) {
-          window.location.href = "login.html";
-        } else {
-          alert("Logout failed.");
-        }
-      } catch (e) {
-        alert("Logout error.");
-        console.error(e);
-      }
-    });
+    // Login link
+    document.getElementById("login-link").href =
+      "https://accounts.google.com/o/oauth2/v2/auth" +
+      "?client_id=YOUR_CLIENT_ID" +
+      "&redirect_uri=" + encodeURIComponent(workerUrl + "/auth/callback") +
+      "&response_type=code" +
+      "&scope=openid%20email" +
+      "&access_type=online";
+
+    checkAuth();
   </script>
 </body>
 </html>
