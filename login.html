@@ -33,7 +33,7 @@
   <div id="message"></div>
 
   <script>
-    const workerLoginUrl = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/login";
+    const workerLoginUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/login";
 
     async function handleCredentialResponse(response) {
       const idToken = response.credential;
@@ -48,7 +48,7 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ idToken }),
-          credentials: "include", // Important for cookies
+          credentials: "include"  // important to receive cookies
         });
         const data = await res.json();
         if (res.ok) {
