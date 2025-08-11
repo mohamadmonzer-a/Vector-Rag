@@ -18,6 +18,213 @@
       text-align: center;
       color: #333;
     }
+    #logoutBtn {
+      float: right;
+      margin-bottom: 1rem;
+      background-color: #ef4444;
+      border: none;
+      padding: 0.4rem 1rem;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #chat {
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background: white;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      white-space: pre-wrap; /* preserve line breaks */
+      font-family: monospace, monospace;
+      color: #222;
+      box-shadow: inset 0 0 5px #ddd;
+    }
+    .message {
+      margin-bottom: 1rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      max-width: 80%;
+      word-wrap: break-word;
+    }
+    .user {
+      font-weight: bold;
+      color: #2563eb;
+      background-color: #dbeafe;
+      margin-left: auto;
+      text-align: right;
+    }
+    .bot {
+      font-weight: normal;
+      color: #444;
+      background-color: #f3f4f6;
+      margin-right: auto;
+      text-align: left;
+    }
+    #inputForm {
+      display: flex;
+      gap: 0.5rem;
+    }
+    #questionInput {
+      flex-grow: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border: 1px solid #bbb;
+      border-radius: 6px;
+    }
+    #sendBtn {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+      background-color: #2563eb;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #sendBtn:disabled {
+      background-color: #a5b4fc;
+      cursor: not-allowed;
+    }
+  </style>
+</head>
+<body>
+  <button id="logoutBtn">Logout</button>
+  <h1>Vector RAG Chat</h1>
+
+  <div id="chat" aria-live="polite" aria-label="Chat conversation"></div>
+
+  <form id="inputForm" autocomplete="off" aria-label="Question form">
+    <input
+      type="text"
+      id="questionInput"
+      placeholder="Ask your question..."
+      autocomplete="off"
+      required
+      aria-required="true"
+      aria-describedby="inputHelp"
+    />
+    <button type="submit" id="sendBtn">Send</button>
+  </form>
+
+  <script>
+    const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
+
+    const chatDiv = document.getElementById("chat");
+    const inputForm = document.getElementById("inputForm");
+    const questionInput = document.getElementById("questionInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    function addMessage(text, sender = "bot") {
+      const div = document.createElement("div");
+      div.className = "message " + sender;
+      div.textContent = text;
+      chatDiv.appendChild(div);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    async function checkAuth() {
+      try {
+        const res = await fetch(BACKEND_URL + "/ask", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: "ping" }),
+        });
+        if (res.status === 401) {
+          // Not logged in, redirect
+          window.location.href = "login.html";
+          return false;
+        }
+        return true;
+      } catch (e) {
+        alert("Network error: " + e.message);
+        return false;
+      }
+    }
+
+    inputForm.onsubmit = async (e) => {
+      e.preventDefault();
+
+      const question = questionInput.value.trim();
+      if (!question) return;
+
+      addMessage(question, "user");
+      questionInput.value = "";
+      sendBtn.disabled = true;
+
+      try {
+        const res = await fetch(BACKEND_URL + "/ask", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
+        if (res.status === 401) {
+          window.location.href = "login.html";
+          return;
+        }
+        if (!res.ok) throw new Error("Failed to get answer");
+
+        const data = await res.json();
+
+        // Show answer nicely, preserving line breaks
+        const answer = data.answer || JSON.stringify(data, null, 2);
+        addMessage(answer, "bot");
+      } catch (err) {
+        addMessage("Error: " + err.message, "bot");
+      } finally {
+        sendBtn.disabled = false;
+      }
+    };
+
+    logoutBtn.onclick = async () => {
+      try {
+        const res = await fetch(BACKEND_URL + "/logout", {
+          method: "POST",
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Logout failed");
+      } catch (e) {
+        alert("Logout error: " + e.message);
+      } finally {
+        window.location.href = "login.html";
+      }
+    };
+
+    window.onload = async () => {
+      const loggedIn = await checkAuth();
+      if (!loggedIn) {
+        // Redirect handled in checkAuth
+        return;
+      }
+    };
+  </script>
+</body>
+</html>
+
+<!-- <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vector RAG Chat</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 3rem auto;
+      padding: 1rem 2rem;
+      background: #f9f9f9;
+      border-radius: 10px;
+      box-shadow: 0 0 12px #ccc;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
     #chat {
       height: 400px;
       overflow-y: auto;
@@ -185,3 +392,4 @@
   </script>
 </body>
 </html>
+ -->
