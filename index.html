@@ -2,12 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Vector Rag</title>
+  <title>Vector Rag Chat</title>
   <style>
     body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-    #chat { margin-top: 20px; }
     #messages { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
-    button { margin-top: 10px; }
+    #login-section, #chat-section { margin-top: 20px; }
+    button { margin-left: 10px; }
   </style>
 </head>
 <body>
@@ -19,7 +19,6 @@
   </div>
 
   <div id="chat-section" style="display:none;">
-    <button id="logout-btn">Logout</button>
     <div id="messages"></div>
     <input type="text" id="question" placeholder="Ask something..." />
     <button id="send">Send</button>
@@ -28,57 +27,83 @@
   <script>
     const workerUrl = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
+    // Check if logged in by sending a ping question
     async function checkAuth() {
-      const res = await fetch(workerUrl + "/ask", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: "__ping__" }),
-      });
-
-      if (res.status === 401) {
-        document.getElementById("login-section").style.display = "block";
-        document.getElementById("chat-section").style.display = "none";
-      } else {
-        document.getElementById("login-section").style.display = "none";
-        document.getElementById("chat-section").style.display = "block";
+      try {
+        const res = await fetch(workerUrl + "/ask", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: "__ping__" }),
+        });
+        if (res.status === 401) {
+          // Not logged in
+          document.getElementById("login-section").style.display = "block";
+          document.getElementById("chat-section").style.display = "none";
+        } else if (res.ok) {
+          // Logged in
+          document.getElementById("login-section").style.display = "none";
+          document.getElementById("chat-section").style.display = "block";
+        } else {
+          // Other error
+          alert("Unexpected error checking login: " + res.status);
+        }
+      } catch (e) {
+        alert("Network error: " + e.message);
       }
     }
 
-    document.getElementById("send").addEventListener("click", async () => {
+    // Send question to backend and display response
+    async function sendQuestion() {
       const questionInput = document.getElementById("question");
       const question = questionInput.value.trim();
       if (!question) return;
 
-      const res = await fetch(workerUrl + "/ask", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
-      });
+      try {
+        const res = await fetch(workerUrl + "/ask", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question }),
+        });
 
-      if (res.status === 401) {
-        alert("Session expired. Please login again.");
-        window.location.href = "login.html";
-        return;
+        if (res.status === 401) {
+          alert("Unauthorized. Please login.");
+          window.location.href = "login.html";
+          return;
+        }
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert("Error: " + (err.error || "Unknown error"));
+          return;
+        }
+
+        const data = await res.json();
+
+        const messages = document.getElementById("messages");
+        messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
+        messages.innerHTML += `<p><b>Bot:</b> ${data.answer || JSON.stringify(data)}</p>`;
+        messages.scrollTop = messages.scrollHeight;
+
+        questionInput.value = "";
+        questionInput.focus();
+      } catch (e) {
+        alert("Network error: " + e.message);
       }
+    }
 
-      const data = await res.json();
-      const messages = document.getElementById("messages");
-      messages.innerHTML += `<p><b>You:</b> ${question}</p>`;
-      messages.innerHTML += `<p><b>Bot:</b> ${data.answer}</p>`;
-      questionInput.value = "";
-      messages.scrollTop = messages.scrollHeight;
+    // Send button handler
+    document.getElementById("send").addEventListener("click", sendQuestion);
+
+    // Allow pressing Enter key in input to send question
+    document.getElementById("question").addEventListener("keydown", e => {
+      if (e.key === "Enter") {
+        sendQuestion();
+      }
     });
 
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-      await fetch(workerUrl + "/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-      window.location.href = "login.html";
-    });
-
+    // Initial login check
     checkAuth();
   </script>
 </body>
