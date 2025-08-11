@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 40px;
+      margin: 40px auto;
       max-width: 600px;
     }
     textarea {
@@ -16,6 +16,7 @@
       font-size: 1.1em;
       padding: 10px;
       box-sizing: border-box;
+      resize: vertical;
     }
     button {
       margin-top: 10px;
@@ -31,6 +32,7 @@
       padding: 15px;
       border-radius: 5px;
       min-height: 100px;
+      user-select: text;
     }
     #logout {
       margin-top: 30px;
@@ -54,13 +56,14 @@
     const workerAskUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/ask";
     const workerLogoutUrl = "https://vector-rag.monzer-mohamad-a.workers.dev/logout";
 
-    // Send question to worker
+    // Send question to the worker with cookie credentials for authentication
     async function askQuestion() {
       const question = document.getElementById("question").value.trim();
       if (!question) {
         alert("Please enter a question.");
         return;
       }
+
       document.getElementById("answer").textContent = "Thinking...";
 
       try {
@@ -69,17 +72,18 @@
           headers: {
             "Content-Type": "application/json"
           },
+          credentials: "include",  // important to send cookies
           body: JSON.stringify({ question }),
-          credentials: "include"  // send cookies for auth
         });
 
         const data = await res.json();
+
         if (res.ok) {
           document.getElementById("answer").textContent = data.answer || "No answer found.";
         } else {
           document.getElementById("answer").textContent = data.error || "Error getting answer.";
           if (res.status === 401) {
-            // Unauthorized, redirect to login
+            // Unauthorized - redirect to login page
             window.location.href = "login.html";
           }
         }
@@ -89,6 +93,7 @@
       }
     }
 
+    // Bind ask button click and enter key (without shift) to send question
     document.getElementById("askBtn").addEventListener("click", askQuestion);
     document.getElementById("question").addEventListener("keypress", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
@@ -97,7 +102,7 @@
       }
     });
 
-    // Logout logic
+    // Logout clears the cookie via worker, then redirects to login page
     document.getElementById("logout").addEventListener("click", async () => {
       try {
         const res = await fetch(workerLogoutUrl, {
