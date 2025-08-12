@@ -29,7 +29,7 @@
       display: inline-block;
     }
 
-    /* Optional: Cookie consent banner styles (if you want a minimal one) */
+    /* Cookie consent banner styles */
     #cookieConsentBanner {
       position: fixed;
       bottom: 0;
@@ -70,27 +70,18 @@
   <!-- Google Sign-In button -->
   <div id="g_id_signin"></div>
 
-  <!-- Cookie Consent Banner (if needed) -->
+  <!-- Cookie Consent Banner -->
   <div id="cookieConsentBanner">
-    <p>We use cookies, including third-party cookies, to enhance your experience. By continuing, you consent to the use of cookies. <a href="/privacy-policy">Learn More</a></p>
+    <p>We use cookies, including third-party cookies, to enhance your experience. By clicking "Accept", you consent to the use of cookies. <a href="/privacy-policy">Learn More</a></p>
     <button id="acceptCookiesBtn">Accept Cookies</button>
   </div>
 
   <script>
     const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
-    // Automatically handle cookies upon sign-in
-    function autoAcceptCookies() {
-      localStorage.setItem('cookies-accepted', 'true'); // Set cookies as accepted
-      document.getElementById('cookieConsentBanner').style.display = 'none';  // Hide banner if shown
-    }
-
     // Handle the response from Google Sign-In
     function handleCredentialResponse(response) {
       const idToken = response.credential;
-
-      // Automatically accept cookies on login attempt (this will remove the need for user action)
-      autoAcceptCookies();
 
       // Send the token to the backend to log in
       fetch(BACKEND_URL + "/login", {
@@ -114,6 +105,28 @@
         });
     }
 
+    // Check if cookies are accepted in localStorage
+    function checkCookies() {
+      return localStorage.getItem('cookies-accepted') === 'true';
+    }
+
+    // Display the cookie consent banner if cookies are not accepted
+    function showCookieConsent() {
+      if (!checkCookies()) {
+        document.getElementById('cookieConsentBanner').style.display = 'block';
+      } else {
+        autoAcceptCookies(); // Automatically accept if cookies are already accepted
+      }
+    }
+
+    // Handle cookie acceptance
+    function autoAcceptCookies() {
+      localStorage.setItem('cookies-accepted', 'true');
+      document.getElementById('cookieConsentBanner').style.display = 'none';
+    }
+
+    document.getElementById('acceptCookiesBtn').onclick = autoAcceptCookies;
+
     window.onload = () => {
       // Initialize Google Sign-In
       google.accounts.id.initialize({
@@ -126,8 +139,8 @@
         { theme: "outline", size: "large" } // Customization of the button
       );
 
-      // Optionally, display a minimal cookie consent banner
-      document.getElementById('cookieConsentBanner').style.display = 'block';
+      // Show cookie consent banner on page load
+      showCookieConsent();
     };
   </script>
 </body>
