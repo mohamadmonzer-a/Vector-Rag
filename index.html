@@ -128,9 +128,42 @@
     @keyframes spin {
       to { transform: rotate(-360deg); }
     }
+
+    /* Cookie consent banner styles */
+    #cookieConsentBanner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      text-align: center;
+      display: none;
+      z-index: 9999;
+    }
+
+    #cookieConsentBanner button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #cookieConsentBanner button:hover {
+      background-color: #45a049;
+    }
+
   </style>
 </head>
 <body>
+  <!-- Cookie Consent Banner -->
+  <div id="cookieConsentBanner">
+    <p>We use cookies, including third-party cookies, to enhance your experience. By clicking "Accept", you consent to the use of cookies. <a href="/privacy-policy" style="color: lightblue;">Learn More</a></p>
+    <button id="acceptCookiesBtn">Accept Cookies</button>
+  </div>
+
   <button id="logoutBtn">Logout</button>
   <h1>
     Vector RAG Chat
@@ -152,14 +185,17 @@
 
   <script>
     const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
-
+    
     const chatDiv = document.getElementById("chat");
     const inputForm = document.getElementById("inputForm");
     const questionInput = document.getElementById("questionInput");
     const sendBtn = document.getElementById("sendBtn");
     const logoutBtn = document.getElementById("logoutBtn");
     const titleLoader = document.getElementById("titleLoader");
+    const cookieConsentBanner = document.getElementById("cookieConsentBanner");
+    const acceptCookiesBtn = document.getElementById("acceptCookiesBtn");
 
+    // Function to add message to chat
     function addMessage(text, sender = "bot") {
       const div = document.createElement("div");
       div.className = "message " + sender;
@@ -167,6 +203,24 @@
       chatDiv.appendChild(div);
       chatDiv.scrollTop = chatDiv.scrollHeight;
     }
+
+    // Check if cookies are accepted
+    function checkCookies() {
+      return localStorage.getItem('cookies-accepted') === 'true';
+    }
+
+    // Display cookie consent banner if not accepted
+    function showCookieConsent() {
+      if (!checkCookies()) {
+        cookieConsentBanner.style.display = 'block';
+      }
+    }
+
+    // Accept cookies and hide banner
+    acceptCookiesBtn.onclick = function() {
+      localStorage.setItem('cookies-accepted', 'true');
+      cookieConsentBanner.style.display = 'none';
+    };
 
     async function checkAuth() {
       try {
@@ -244,6 +298,8 @@
     window.onload = async () => {
       const loggedIn = await checkAuth();
       if (!loggedIn) return;
+
+      showCookieConsent();
     };
   </script>
 </body>
