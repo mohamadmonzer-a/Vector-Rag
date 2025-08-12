@@ -108,7 +108,7 @@
     <button type="submit" id="sendBtn">Send</button>
   </form>
 
-  <script>
+<!--   <script>
     const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
     const chatDiv = document.getElementById("chat");
@@ -201,7 +201,106 @@
         return;
       }
     };
-  </script>
+  </script> -->
+  <script>
+  const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
+
+  const chatDiv = document.getElementById("chat");
+  const inputForm = document.getElementById("inputForm");
+  const questionInput = document.getElementById("questionInput");
+  const sendBtn = document.getElementById("sendBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+
+  function addMessage(text, sender = "bot") {
+    const div = document.createElement("div");
+    div.className = "message " + sender;
+    div.textContent = text;
+    chatDiv.appendChild(div);
+    chatDiv.scrollTop = chatDiv.scrollHeight;
+  }
+
+  async function checkAuth() {
+    try {
+      const res = await fetch(BACKEND_URL + "/ask", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: "ping" }),
+      });
+      if (res.status === 401) {
+        // Not logged in, redirect
+        window.location.href = "login.html";
+        return false;
+      }
+      return true;
+    } catch (e) {
+      alert("Network error: " + e.message);
+      return false;
+    }
+  }
+
+  inputForm.onsubmit = async (e) => {
+    e.preventDefault();
+
+    const question = questionInput.value.trim();
+    if (!question) return;
+
+    addMessage(question, "user");
+    questionInput.value = "";
+    sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(BACKEND_URL + "/ask", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      if (res.status === 401) {
+        window.location.href = "login.html";
+        return;
+      }
+      if (!res.ok) throw new Error("Failed to get answer");
+
+      const data = await res.json();
+
+      // Append " (cached)" if response is cached
+      let answer = data.answer || JSON.stringify(data, null, 2);
+      if (data.status === "cached") {
+        answer += "  ⚡(cached)";
+      }
+
+      addMessage(answer, "bot");
+    } catch (err) {
+      addMessage("Error: " + err.message, "bot");
+    } finally {
+      sendBtn.disabled = false;
+    }
+  };
+
+  logoutBtn.onclick = async () => {
+    try {
+      const res = await fetch(BACKEND_URL + "/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Logout failed");
+    } catch (e) {
+      alert("Logout error: " + e.message);
+    } finally {
+      window.location.href = "login.html";
+    }
+  };
+
+  window.onload = async () => {
+    const loggedIn = await checkAuth();
+    if (!loggedIn) {
+      // Redirect handled in checkAuth
+      return;
+    }
+  };
+</script>
+
 </body>
 </html>
 
