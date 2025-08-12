@@ -15,50 +15,9 @@
       border-radius: 8px;
       box-shadow: 0 3px 10px rgba(0,0,0,0.1);
     }
-    h1 {
-      font-size: 1.8rem;
-      color: #333;
-      margin-bottom: 1.5rem;
-    }
-    p {
-      color: #555;
-      margin-bottom: 2rem;
-    }
     #g_id_signin {
       margin-top: 2rem;
       display: inline-block;
-    }
-
-    /* Cookie consent banner styles */
-    #cookieConsentBanner {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background-color: rgba(0, 0, 0, 0.8);
-      color: white;
-      padding: 10px;
-      text-align: center;
-      display: none;
-      z-index: 9999;
-    }
-
-    #cookieConsentBanner button {
-      background-color: #4CAF50;
-      color: white;
-      padding: 8px 16px;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
-
-    #cookieConsentBanner button:hover {
-      background-color: #45a049;
-    }
-
-    #cookieConsentBanner a {
-      color: lightblue;
-      text-decoration: none;
     }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -67,31 +26,17 @@
   <h1>Login to Vector RAG</h1>
   <p>Please sign in with Google to continue.</p>
 
-  <!-- Google Sign-In button -->
   <div id="g_id_signin"></div>
-
-  <!-- Cookie Consent Banner -->
-  <div id="cookieConsentBanner">
-    <p>We use cookies to enhance your experience. By clicking "Accept", you consent to the use of cookies. <a href="/privacy-policy">Learn More</a></p>
-    <button id="acceptCookiesBtn">Accept Cookies</button>
-  </div>
 
   <script>
     const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
-    
-    // Check if cookies are enabled (if cookies are disabled, `document.cookie` will be empty)
-    function checkCookiesEnabled() {
-      document.cookie = "testcookie=true";
-      return document.cookie.indexOf("testcookie") !== -1;
-    }
 
-    // Handle the response from Google Sign-In
     function handleCredentialResponse(response) {
       const idToken = response.credential;
 
-      // Send the token to the backend to log in
       fetch(BACKEND_URL + "/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
@@ -102,7 +47,7 @@
           return res.json();
         })
         .then(() => {
-          // Redirect to main app page after successful login
+          // Redirect to main app page after login success
           window.location.href = "index.html";
         })
         .catch(err => {
@@ -110,25 +55,7 @@
         });
     }
 
-    // Display cookie consent banner if cookies are not accepted
-    function showCookieConsent() {
-      if (!checkCookiesEnabled()) {
-        document.getElementById('cookieConsentBanner').style.display = 'block';
-      } else {
-        autoAcceptCookies(); // Automatically accept if cookies are enabled
-      }
-    }
-
-    // Handle cookie acceptance
-    function autoAcceptCookies() {
-      localStorage.setItem('cookies-accepted', 'true');
-      document.getElementById('cookieConsentBanner').style.display = 'none';
-    }
-
-    document.getElementById('acceptCookiesBtn').onclick = autoAcceptCookies;
-
     window.onload = () => {
-      // Initialize Google Sign-In
       google.accounts.id.initialize({
         client_id: "723269872009-n5s7di6on92goolcvriuo4lp6db0l5kl.apps.googleusercontent.com",
         callback: handleCredentialResponse,
@@ -136,11 +63,11 @@
 
       google.accounts.id.renderButton(
         document.getElementById("g_id_signin"),
-        { theme: "outline", size: "large" } // Customization of the button
+        { theme: "outline", size: "large" } // customization
       );
 
-      // Show cookie consent banner on page load
-      showCookieConsent();
+      // Optional: auto prompt
+      // google.accounts.id.prompt();
     };
   </script>
 </body>
