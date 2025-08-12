@@ -19,6 +19,36 @@
       margin-top: 2rem;
       display: inline-block;
     }
+
+    /* Cookie consent banner styles */
+    #cookieConsentBanner {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      text-align: center;
+      display: none;
+      z-index: 9999;
+    }
+
+    #cookieConsentBanner button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 8px 16px;
+      border: none;
+      cursor: pointer;
+    }
+
+    #cookieConsentBanner button:hover {
+      background-color: #45a049;
+    }
+
+    #cookieConsentBanner a {
+      color: lightblue;
+    }
   </style>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -28,9 +58,16 @@
 
   <div id="g_id_signin"></div>
 
+  <!-- Cookie Consent Banner -->
+  <div id="cookieConsentBanner">
+    <p>We use cookies, including third-party cookies, to enhance your experience. By clicking "Accept", you consent to the use of cookies. <a href="/privacy-policy">Learn More</a></p>
+    <button id="acceptCookiesBtn">Accept Cookies</button>
+  </div>
+
   <script>
     const BACKEND_URL = "https://vector-rag.monzer-mohamad-a.workers.dev";
 
+    // Function to handle the Google login
     function handleCredentialResponse(response) {
       const idToken = response.credential;
 
@@ -55,7 +92,26 @@
         });
     }
 
+    // Function to check if cookies are accepted
+    function checkCookies() {
+      return localStorage.getItem('cookies-accepted') === 'true';
+    }
+
+    // Display cookie consent banner if not accepted
+    function showCookieConsent() {
+      if (!checkCookies()) {
+        document.getElementById('cookieConsentBanner').style.display = 'block';
+      }
+    }
+
+    // Accept cookies and hide banner
+    document.getElementById('acceptCookiesBtn').onclick = function() {
+      localStorage.setItem('cookies-accepted', 'true');
+      document.getElementById('cookieConsentBanner').style.display = 'none';
+    };
+
     window.onload = () => {
+      // Initialize the Google Sign-In button
       google.accounts.id.initialize({
         client_id: "723269872009-n5s7di6on92goolcvriuo4lp6db0l5kl.apps.googleusercontent.com",
         callback: handleCredentialResponse,
@@ -66,8 +122,8 @@
         { theme: "outline", size: "large" } // customization
       );
 
-      // Optional: auto prompt
-      // google.accounts.id.prompt();
+      // Show cookie consent banner on page load
+      showCookieConsent();
     };
   </script>
 </body>
