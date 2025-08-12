@@ -121,6 +121,7 @@
     document.getElementById('acceptCookiesBtn').onclick = function() {
       localStorage.setItem('cookies-accepted', 'true');
       document.getElementById('cookieConsentBanner').style.display = 'none';
+      window.location.reload();  // Reload page to enable cookies
     };
 
     window.onload = () => {
